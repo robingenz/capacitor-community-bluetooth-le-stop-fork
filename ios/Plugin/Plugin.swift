@@ -465,7 +465,7 @@ public class BluetoothLe: CAPPlugin {
             characteristic.1,
             true, {(_, value) -> Void in
                 let key = "notification|\(device.getId())|\(characteristic.0.uuidString.lowercased())|\(characteristic.1.uuidString.lowercased())"
-                if key == "" && value == "" {
+                if value == "5a 01 01 00 00 00 00 3f" {
                     self.handleEmergencyNotification();
                 }
                 self.notifyListeners(key, data: ["value": value])

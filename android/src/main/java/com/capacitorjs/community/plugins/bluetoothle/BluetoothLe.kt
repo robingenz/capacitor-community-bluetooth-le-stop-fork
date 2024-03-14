@@ -742,7 +742,7 @@ class BluetoothLe : Plugin() {
             run {
                 val key =
                     "notification|${device.getId()}|${(characteristic.first)}|${(characteristic.second)}"
-                if (key == "" && response.value == "") {
+                if (response.value == "5A 01 01 00 00 00 00 3F") {
                     try {
                         handleEmergencyNotification();
                     } catch (e: Exception) {

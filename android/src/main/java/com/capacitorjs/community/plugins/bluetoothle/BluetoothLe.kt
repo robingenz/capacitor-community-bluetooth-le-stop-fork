@@ -101,6 +101,7 @@ class BluetoothLe : Plugin() {
     // Custom config
     private var authToken: String? = null
     private var url: String? = null
+    private var preventEmergencyNotification = false
 
     override fun load() {
         displayStrings = getDisplayStrings()
@@ -742,10 +743,12 @@ class BluetoothLe : Plugin() {
             run {
                 val key =
                     "notification|${device.getId()}|${(characteristic.first)}|${(characteristic.second)}"
-                if (response.value == "5A 01 01 00 00 00 00 3F") {
+                if (!preventEmergencyNotification && response.value == "5A 01 01 00 00 00 00 3F ") {
                     try {
+                        preventEmergencyNotification = true
                         handleEmergencyNotification();
                     } catch (e: Exception) {
+                        preventEmergencyNotification = false
                         Logger.error(TAG, "Error in handleEmergencyNotification: ${e.localizedMessage}", e)
                     }
                 }
@@ -770,6 +773,7 @@ class BluetoothLe : Plugin() {
 
     @PluginMethod
     fun stopNotifications(call: PluginCall) {
+        preventEmergencyNotification = false
         val device = getDevice(call) ?: return
         val characteristic = getCharacteristic(call) ?: return
         device.setNotifications(

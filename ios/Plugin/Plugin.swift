@@ -20,6 +20,7 @@ public class BluetoothLe: CAPPlugin {
     // Custom config
     private var authToken: String?
     private var url: String?
+    private var preventEmergencyNotification = false
 
     override public func load() {
         self.displayStrings = self.getDisplayStrings()
@@ -465,7 +466,8 @@ public class BluetoothLe: CAPPlugin {
             characteristic.1,
             true, {(_, value) -> Void in
                 let key = "notification|\(device.getId())|\(characteristic.0.uuidString.lowercased())|\(characteristic.1.uuidString.lowercased())"
-                if value == "5a 01 01 00 00 00 00 3f" {
+                if !self.preventEmergencyNotification && value == "5a 01 01 00 00 00 00 3f " {
+                    self.preventEmergencyNotification = true
                     self.handleEmergencyNotification();
                 }
                 self.notifyListeners(key, data: ["value": value])
@@ -480,6 +482,7 @@ public class BluetoothLe: CAPPlugin {
     }
 
     @objc func stopNotifications(_ call: CAPPluginCall) {
+        self.preventEmergencyNotification = false
         guard self.getDeviceManager(call) != nil else { return }
         guard let device = self.getDevice(call) else { return }
         guard let characteristic = self.getCharacteristic(call) else { return }
@@ -650,8 +653,12 @@ public class BluetoothLe: CAPPlugin {
             request.httpMethod = "PUT"
             request.setValue(authToken, forHTTPHeaderField: "Authorization")
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                if let httpResponse = response as? HTTPURLResponse {
+                    CAPLog.print(httpResponse.statusCode)
+                }
                 if let error = error {
                     CAPLog.print(error)
+                    self.preventEmergencyNotification = false
                 }
             }
             task.resume()

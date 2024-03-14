@@ -16,6 +16,10 @@ public class BluetoothLe: CAPPlugin {
     private var deviceManager: DeviceManager?
     private var deviceMap = [String: Device]()
     private var displayStrings = [String: String]()
+    
+    // Custom config
+    private var authToken: String?
+    private var url: String?
 
     override public func load() {
         self.displayStrings = self.getDisplayStrings()
@@ -461,6 +465,9 @@ public class BluetoothLe: CAPPlugin {
             characteristic.1,
             true, {(_, value) -> Void in
                 let key = "notification|\(device.getId())|\(characteristic.0.uuidString.lowercased())|\(characteristic.1.uuidString.lowercased())"
+                if key == "" && value == "" {
+                    self.handleEmergencyNotification();
+                }
                 self.notifyListeners(key, data: ["value": value])
             },
             timeout, {(success, value) -> Void in
@@ -489,6 +496,12 @@ public class BluetoothLe: CAPPlugin {
                     call.reject(value)
                 }
             })
+    }
+    
+    @objc func setCustomConfig(_ call: CAPPluginCall) {
+        self.authToken = call.getString("authToken")
+        self.url = call.getString("url")
+        call.resolve()
     }
 
     private func getDisplayStrings() -> [String: String] {
@@ -628,5 +641,20 @@ public class BluetoothLe: CAPPlugin {
             result[cbuuidToString(key)] = dataToString(value)
         }
         return result
+    }
+    
+    private func handleEmergencyNotification() {
+        if let url = self.url, let authToken = self.authToken {
+            let url = URL(string: url)
+            var request = URLRequest(url: url!)
+            request.httpMethod = "PUT"
+            request.setValue(authToken, forHTTPHeaderField: "Authorization")
+            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                if let error = error {
+                    CAPLog.print(error)
+                }
+            }
+            task.resume()
+        }
     }
 }
